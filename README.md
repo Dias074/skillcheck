@@ -6,6 +6,11 @@ Knowledge assessment and learning progress app. Built incrementally as a Flutter
 
 Phase 1: Home, Assessments, Progress and Profile navigation; Material 3 light/dark themes; session-only appearance selection. Screens are placeholders. Authentication, quizzes and backend are not implemented.
 
+Phase 2 adds pure Dart assessment models and scoring with unit tests.
+The scorer supports single-answer multiple choice and true/false questions,
+weighted points, and separate correct/incorrect/unanswered counts.
+The assessment UI remains a placeholder.
+
 ## Screenshots
 
 Screenshots will be added after the assessment flow is implemented. Run the foundation preview locally for now.
@@ -18,7 +23,20 @@ Planned dependencies: Supabase, fl_chart, simple local preferences. They will be
 
 ## Architecture
 
-Feature-based: app configuration in app/, feature UI in features/, reusable widgets in shared/. Data and domain layers will be introduced when needed.
+Feature-based: app configuration in app/, feature UI in features/, reusable widgets in shared/. Assessment models and scoring live in features/assessments/domain/ and have no Flutter, Riverpod or backend dependencies.
+
+Domain flow: Category → Topic → Question + QuestionOption; an Assessment
+holds a fixed question snapshot. AssessmentScorer takes the assessment,
+AssessmentAnswer selections and an explicit completion time, then returns
+AssessmentResult. The UI is not connected to this flow yet.
+
+Scoring: correct selections earn the question's positive integer points.
+Incorrect and omitted/null selections earn zero; omitted/null selections
+count as unanswered, not incorrect. Percentage is earned points divided by
+all available points × 100, without rounding. Difficulty is metadata and
+does not apply an extra multiplier. Empty assessments, duplicate IDs/answers,
+foreign question/option references and completion before start are rejected.
+Local answer keys support the upcoming prototype; they are not a secure exam boundary.
 
 ```text
 main → ProviderScope → SkillCheckApp → MaterialApp.router
@@ -38,7 +56,10 @@ lib/
     theme/
   features/
     home/presentation/
-    assessments/presentation/
+    assessments/
+      domain/models/
+      domain/services/
+      presentation/
     progress/presentation/
     profile/presentation/
   shared/widgets/
@@ -80,7 +101,7 @@ This machine has that configuration. Android is the alternative local run target
 
 ## Environment variables
 
-None required in Phase 1. Environment files and signing keys are ignored. A safe configuration example will be added with the backend. Never put Supabase service-role credentials in the client.
+None required in Phases 1–2. Environment files and signing keys are ignored. A safe configuration example will be added with the backend. Never put Supabase service-role credentials in the client.
 
 ## Testing
 
@@ -93,6 +114,14 @@ flutter build apk --debug
 
 Widget tests cover navigation, theme changes, unknown-route recovery and small-screen layout with enlarged text.
 
+Domain unit tests cover weighted scoring, both question types, skips, precision,
+input order, invalid submissions, timestamps and immutable question snapshots.
+Run only Phase 2 tests with:
+
+```sh
+flutter test test/features/assessments/domain
+```
+
 Phase 1 verification: static analysis clean, all four widget tests pass,
 Android debug APK builds successfully. Windows build is blocked by the
 local encoding issue described above. iOS has not been built on this Windows host.
@@ -102,7 +131,7 @@ Manual checks: visit each tab, click Explore assessments, select System/Light/Da
 ## Roadmap
 
 - [x] Phase 1: Foundation, themes and navigation
-- [ ] Phase 2: Domain models and scoring
+- [x] Phase 2: Domain models and scoring
 - [ ] Phase 3: Local assessment prototype
 - [ ] Phase 4: Supabase, authentication and RLS
 - [ ] Phase 5: Progress history and charts
