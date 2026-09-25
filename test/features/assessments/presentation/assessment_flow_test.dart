@@ -1,3 +1,5 @@
+import '../../../fixtures/fake_repositories.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +18,12 @@ void main() {
   testWidgets(
     'Home to mixed result and answer review, preserving choices across tabs',
     (tester) async {
-      await tester.pumpWidget(const ProviderScope(child: SkillCheckApp()));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: testContainer(),
+          child: const SkillCheckApp(),
+        ),
+      );
       await tester.pumpAndSettle();
       await tapText(tester, 'Explore assessments');
       await tapText(tester, 'Start English');
@@ -60,7 +67,7 @@ void main() {
   );
 
   testWidgets('clear answer and submit all skipped', (tester) async {
-    final container = ProviderContainer();
+    final container = testContainer();
     addTearDown(container.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -68,7 +75,9 @@ void main() {
         child: const SkillCheckApp(),
       ),
     );
-    container.read(assessmentControllerProvider.notifier).start('english');
+    await container
+        .read(assessmentControllerProvider.notifier)
+        .start('english');
     container.read(appRouterProvider).go('/assessments/session');
     await tester.pumpAndSettle();
     await tapText(tester, 'goes');
@@ -84,7 +93,7 @@ void main() {
   testWidgets('replacing an unfinished attempt requires explicit choice', (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = testContainer();
     addTearDown(container.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -93,7 +102,7 @@ void main() {
       ),
     );
     final controller = container.read(assessmentControllerProvider.notifier);
-    controller.start('english');
+    await controller.start('english');
     controller.selectAnswer('en_1_1');
     container.read(appRouterProvider).go('/assessments');
     await tester.pumpAndSettle();
@@ -116,7 +125,7 @@ void main() {
   testWidgets(
     'direct routes without an attempt recover safely and review is gated',
     (tester) async {
-      final container = ProviderContainer();
+      final container = testContainer();
       addTearDown(container.dispose);
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -129,7 +138,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('No result available'), findsOneWidget);
       }
-      container.read(assessmentControllerProvider.notifier).start('english');
+      await container
+          .read(assessmentControllerProvider.notifier)
+          .start('english');
       container.read(appRouterProvider).go('/assessments/review');
       await tester.pumpAndSettle();
       expect(find.textContaining('Correct answer:'), findsNothing);
@@ -147,7 +158,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      final container = ProviderContainer();
+      final container = testContainer();
       addTearDown(container.dispose);
       await tester.pumpWidget(
         UncontrolledProviderScope(

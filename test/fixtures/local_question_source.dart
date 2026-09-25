@@ -1,6 +1,6 @@
-import '../../domain/models/category.dart';
-import '../../domain/models/question.dart';
-import '../../domain/models/question_option.dart';
+import 'package:skillcheck/features/assessments/domain/models/category.dart';
+import 'package:skillcheck/features/assessments/domain/models/question.dart';
+import 'package:skillcheck/features/assessments/domain/models/question_option.dart';
 
 /// Demo-only content. Never presented as production history or a validated exam.
 class LocalQuestionSource {

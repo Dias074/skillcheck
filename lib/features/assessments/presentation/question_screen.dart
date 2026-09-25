@@ -31,7 +31,7 @@ class QuestionScreen extends ConsumerWidget {
     return PageContent(
       key: ValueKey(question.id),
       title: session.category.name,
-      description: 'Local sample • No answers are revealed until submission.',
+      description: 'No answers are revealed until submission.',
       children: [
         Text(
           'Question ${session.questionIndex + 1} of ${session.assessment.questions.length}',

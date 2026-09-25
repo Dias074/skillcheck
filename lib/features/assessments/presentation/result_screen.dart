@@ -16,7 +16,7 @@ class ResultScreen extends ConsumerWidget {
     if (session == null || result == null) return const SessionUnavailable();
     return PageContent(
       title: '${session.category.name} result',
-      description: 'Local sample result • Not saved to a history.',
+      description: 'Assessment result • Not saved to a history.',
       children: [
         Card(
           child: Padding(

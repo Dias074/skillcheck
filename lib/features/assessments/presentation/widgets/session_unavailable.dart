@@ -10,7 +10,7 @@ class SessionUnavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PageContent(
     title: 'No result available',
-    description: 'Local attempts are kept only while the app is running.',
+    description: 'Attempts are kept only while the app is running.',
     children: [
       FeaturePlaceholder(
         icon: Icons.quiz_outlined,

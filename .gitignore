@@ -60,3 +60,7 @@ app.*.map.json
 secrets/
 
 **/.kotlin/
+
+config/*.local.json
+supabase/.temp/
+supabase/.branches/

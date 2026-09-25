@@ -1,3 +1,5 @@
+import 'fixtures/fake_repositories.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,19 +8,24 @@ import 'package:skillcheck/app/router/app_router.dart';
 
 void main() {
   testWidgets('home action and bottom destinations navigate', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: SkillCheckApp()));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: testContainer(),
+        child: const SkillCheckApp(),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Welcome to SkillCheck'), findsOneWidget);
     await tester.tap(find.text('Explore assessments'));
     await tester.pumpAndSettle();
-    expect(find.text('Local sample assessments'), findsOneWidget);
+    expect(find.text('Choose an assessment'), findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       1,
     );
     for (final entry in {
       'Progress': 'Progress tracking is coming soon',
-      'Profile': 'Your account is coming soon',
+      'Profile': 'Account',
       'Home': 'Welcome to SkillCheck',
     }.entries) {
       await tester.tap(find.widgetWithText(NavigationDestination, entry.key));
@@ -30,7 +37,12 @@ void main() {
   testWidgets('theme selection updates app and survives navigation', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: SkillCheckApp()));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: testContainer(),
+        child: const SkillCheckApp(),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(NavigationDestination, 'Profile'));
     await tester.pumpAndSettle();
@@ -57,7 +69,7 @@ void main() {
   });
 
   testWidgets('unknown route offers recovery', (tester) async {
-    final container = ProviderContainer();
+    final container = testContainer();
     addTearDown(container.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -82,7 +94,12 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    await tester.pumpWidget(const ProviderScope(child: SkillCheckApp()));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: testContainer(),
+        child: const SkillCheckApp(),
+      ),
+    );
     await tester.pumpAndSettle();
     for (final label in ['Assessments', 'Progress', 'Profile', 'Home']) {
       await tester.tap(find.widgetWithText(NavigationDestination, label));

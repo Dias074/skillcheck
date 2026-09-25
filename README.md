@@ -4,16 +4,20 @@ Knowledge assessment and learning progress app. Built incrementally as a Flutter
 
 ## Features
 
-Phase 1: Home, Assessments, Progress and Profile navigation; Material 3 light/dark themes; session-only appearance selection. Profile and Progress remain placeholders. Authentication and backend are not implemented.
+Home, Assessments, Progress and Profile navigation use Material 3 light/dark
+themes. Progress remains a placeholder. Phase 4 adds Supabase email/password
+authentication, private profiles and remotely loaded assessment content.
+Phase 4 is complete: the user applied the schema/RLS and sample content migrations
+and verified the live integration in Chrome. See [Supabase setup](docs/supabase-setup.md).
 
 Phase 2 adds pure Dart assessment models and scoring with unit tests.
 The scorer supports single-answer multiple choice and true/false questions,
 weighted points, and separate correct/incorrect/unanswered counts.
-Phase 3 connects this domain to a working local assessment flow:
+Phase 3 introduced the reusable assessment flow:
 five categories with three demo questions each, answer selection, Previous/Next,
 optional skips, submission, weighted results and answer review.
 Only one attempt is held in memory. Starting another replaces it; restarting
-the app clears it. There is no persistent history or user progress.
+the app clears it. Logout also clears it. There is no persistent history or user progress.
 
 ## Screenshots
 
@@ -23,7 +27,8 @@ Screenshots will be added during portfolio preparation. Run the local prototype 
 
 Flutter 3.47.4 / Dart 3.13.3, Material 3, flutter_riverpod 3.4.3, go_router 18.0.1, flutter_lints and flutter_test.
 
-Planned dependencies: Supabase, fl_chart, simple local preferences. They will be added only when needed.
+Phase 4 adds the official supabase_flutter package (including its session
+storage dependencies). Charts and standalone preference persistence remain future work.
 
 ## Architecture
 
@@ -41,16 +46,18 @@ count as unanswered, not incorrect. Percentage is earned points divided by
 all available points × 100, without rounding. Difficulty is metadata and
 does not apply an extra multiplier. Empty assessments, duplicate IDs/answers,
 foreign question/option references and completion before start are rejected.
-Local answer keys support this prototype; they are not a secure exam boundary.
+Answer keys are available to authenticated clients for scoring/review;
+this educational app is not a secure exam boundary.
 
 ```text
-Assessment category → LocalQuestionSource → AssessmentController
+Assessment category → SupabaseAssessmentRepository → AssessmentController
 → user selections → AssessmentScorer → AssessmentResult
 → ResultScreen → AnswerReviewScreen
 ```
 
-Demo content is isolated in data/local/. No new dependencies or changes to
-Phase 2 domain models were needed. Review is unavailable before submission;
+Sample content is seeded by versioned SQL. The former local source lives in
+test/fixtures/ and is never used by production runtime. Phase 2 models and
+scorer remain unchanged. Review is unavailable before submission;
 after submission the controller rejects edits. Tab navigation preserves the
 active attempt. Replacing an unfinished attempt requires confirmation.
 
@@ -74,12 +81,13 @@ lib/
     home/presentation/
     assessments/
       application/
-      data/local/
+      data/
       domain/models/
       domain/services/
       presentation/
     progress/presentation/
     profile/presentation/
+    auth/
   shared/widgets/
 test/
 android/
@@ -92,7 +100,11 @@ web/
 
 File responsibilities: [Phase 1 inventory](docs/phase-1-files.md).
 
-Not connected. Supabase schema, authentication, repositories and RLS are scheduled for Phase 4.
+Phase 4 provides migrations for profiles, categories, topics, questions and
+question_options, a profile trigger and least-privilege RLS. These migrations
+have been applied manually by the user to the configured project. For a new
+project, follow [these instructions](docs/supabase-setup.md); do not reapply the
+initial schema to the existing project. Assessment history remains future work.
 
 ## Getting started
 
@@ -104,7 +116,7 @@ cd skillcheck
 flutter pub get
 flutter doctor
 flutter devices
-flutter run -d chrome
+flutter run -d chrome --web-port 7357 --dart-define-from-file=config/supabase.local.json
 ```
 
 Chrome/Web is the primary development and manual testing target on this 8 GB
@@ -122,15 +134,19 @@ This machine has that configuration. Use Chrome for current manual verification.
 
 ## Environment variables
 
-None required in Phases 1–3. Environment files and signing keys are ignored. A safe configuration example will be added with the backend. Never put Supabase service-role credentials in the client.
+Copy config/supabase.example.json to the ignored config/supabase.local.json.
+Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and AUTH_REDIRECT_URL.
+The publishable client key is visible in the compiled app; security depends
+on authentication and RLS. Never put server credentials in the client.
+Without configuration, the app shows setup instructions.
 
 ## Testing
 
 ```sh
-dart format lib test
+dart format lib test tool
 flutter analyze
 flutter test
-flutter run -d chrome
+flutter run -d chrome --web-port 7357 --dart-define-from-file=config/supabase.local.json
 ```
 
 Widget tests cover navigation, theme changes, unknown-route recovery and small-screen layout with enlarged text.
@@ -163,6 +179,20 @@ is reserved for a physical phone after the main development phases.
 
 Manual assessment check in Chrome:
 
+For a new installation, first apply migrations, configure redirect URLs and
+sign in. The current local configuration and live integration have been verified.
+Unit/widget tests use fake repositories and do not require a Supabase project.
+
+Phase 4 manual verification (user, 2026-09-25): registration, email confirmation,
+sign-in/session, profile email/display name, logout, protected-route redirects,
+password recovery and sign-in with the new password all passed in Chrome.
+The user also verified loading 5 categories and their questions/options from
+Supabase, assessment navigation, answer preservation, skips, scoring, results
+and answer review. Anonymous content access was separately checked and denied.
+The dedicated two-user SQL RLS test has not been reported as executed; app
+route protection alone does not prove database row isolation. Native checks
+remain reserved for a physical phone. Phase 5 has not started.
+
 1. Home → Explore assessments → Start English.
 2. Select goes, Next, then False. Previous should preserve goes.
 3. Return to question 2, Next, leave question 3 unanswered and Submit assessment.
@@ -177,7 +207,7 @@ Manual assessment check in Chrome:
 - [x] Phase 1: Foundation, themes and navigation
 - [x] Phase 2: Domain models and scoring
 - [x] Phase 3: Local assessment prototype
-- [ ] Phase 4: Supabase, authentication and RLS
+- [x] Phase 4: Supabase authentication, profiles and assessment content; live Chrome verification complete
 - [ ] Phase 5: Progress history and charts
 - [ ] Phase 6: Weak-topic analysis
 - [ ] Phase 7: Rule-based practice

@@ -7,5 +7,5 @@
 - Preserve full Android compatibility. Share application logic across platforms; do not introduce web-specific architecture or features solely for testing.
 - Reserve final Android testing for a physical phone connected by the user after the main development phases.
 - Use Chrome/Web in testing instructions and learning reports. Do not recommend launching an emulator.
-- Complete only the explicitly authorized phase, provide the agreed learning report, then stop. Do not start Phase 4 without an explicit request.
+- Complete only the explicitly authorized phase, provide the agreed learning report, then stop. Phase 4 is complete; do not start Phase 5 without an explicit request.
 - Do not commit or push unless explicitly requested.

@@ -1,19 +1,22 @@
+import '../../../fixtures/fake_repositories.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skillcheck/features/assessments/application/assessment_controller.dart';
 import 'package:skillcheck/features/assessments/application/assessment_session.dart';
-import 'package:skillcheck/features/assessments/data/local/local_question_source.dart';
+
+import '../../../fixtures/local_question_source.dart';
+
+import 'package:skillcheck/core/errors/app_failure.dart';
 import 'package:skillcheck/features/assessments/domain/services/assessment_scorer.dart';
 
-void main() {
+void main() async {
   late ProviderContainer container;
   late AssessmentController controller;
   final now = DateTime.utc(2026, 9, 25);
 
-  setUp(() {
-    container = ProviderContainer(
-      overrides: [assessmentClockProvider.overrideWithValue(() => now)],
-    );
+  setUp(() async {
+    container = testContainer(clock: () => now);
     controller = container.read(assessmentControllerProvider.notifier);
   });
   tearDown(() => container.dispose());
@@ -21,9 +24,9 @@ void main() {
 
   test(
     'all five datasets create valid assessments with both question types',
-    () {
+    () async {
       for (final category in LocalQuestionSource.categories) {
-        controller.start(category.id);
+        await controller.start(category.id);
         final current = session();
         expect(current.assessment.questions, hasLength(3));
         expect(
@@ -43,39 +46,45 @@ void main() {
     },
   );
 
-  test('preserves, replaces and clears choices without mutating old state', () {
-    controller.start('english');
-    final original = session();
-    controller.selectAnswer('en_1_0');
-    controller.next();
-    controller.selectAnswer('en_2_1');
-    controller.previous();
-    expect(session().selections['en_1'], 'en_1_0');
-    controller.selectAnswer('en_1_1');
-    expect(session().selections['en_1'], 'en_1_1');
-    controller.clearAnswer();
-    expect(session().selections.containsKey('en_1'), isFalse);
-    expect(session().selections['en_2'], 'en_2_1');
-    expect(original.selections, isEmpty);
-    expect(() => session().selections.clear(), throwsUnsupportedError);
-  });
+  test(
+    'preserves, replaces and clears choices without mutating old state',
+    () async {
+      await controller.start('english');
+      final original = session();
+      controller.selectAnswer('en_1_0');
+      controller.next();
+      controller.selectAnswer('en_2_1');
+      controller.previous();
+      expect(session().selections['en_1'], 'en_1_0');
+      controller.selectAnswer('en_1_1');
+      expect(session().selections['en_1'], 'en_1_1');
+      controller.clearAnswer();
+      expect(session().selections.containsKey('en_1'), isFalse);
+      expect(session().selections['en_2'], 'en_2_1');
+      expect(original.selections, isEmpty);
+      expect(() => session().selections.clear(), throwsUnsupportedError);
+    },
+  );
 
-  test('navigation clamps at boundaries and permits unanswered questions', () {
-    controller.start('english');
-    controller.previous();
-    expect(session().questionIndex, 0);
-    controller.next();
-    controller.next();
-    controller.next();
-    expect(session().questionIndex, 2);
-    expect(session().progress, 1);
-    expect(session().skippedCount, 3);
-  });
+  test(
+    'navigation clamps at boundaries and permits unanswered questions',
+    () async {
+      await controller.start('english');
+      controller.previous();
+      expect(session().questionIndex, 0);
+      controller.next();
+      controller.next();
+      controller.next();
+      expect(session().questionIndex, 2);
+      expect(session().progress, 1);
+      expect(session().skippedCount, 3);
+    },
+  );
 
   test(
     'submission matches domain scorer for a correct, wrong and skipped answer',
-    () {
-      controller.start('english');
+    () async {
+      await controller.start('english');
       controller.selectAnswer('en_1_1');
       controller.next();
       controller.selectAnswer('en_2_1');
@@ -103,8 +112,8 @@ void main() {
     },
   );
 
-  test('all skipped submission is allowed and review stays locked until submission', () {
-    controller.start('english');
+  test('all skipped submission is allowed and review stays locked until submission', () async {
+    await controller.start('english');
     expect(() => session().review, throwsStateError);
     final result = controller.submit();
     expect(result.score, 0);
@@ -115,9 +124,9 @@ void main() {
     );
   });
 
-  test('all correct answers earn full marks in every category', () {
+  test('all correct answers earn full marks in every category', () async {
     for (final category in LocalQuestionSource.categories) {
-      controller.start(category.id);
+      await controller.start(category.id);
       for (var i = 0; i < 3; i++) {
         controller.selectAnswer(session().currentQuestion.correctOptionId);
         controller.next();
@@ -126,8 +135,8 @@ void main() {
     }
   });
 
-  test('submission is idempotent and blocks subsequent edits', () {
-    controller.start('english');
+  test('submission is idempotent and blocks subsequent edits', () async {
+    await controller.start('english');
     final result = controller.submit();
     expect(identical(controller.submit(), result), isTrue);
     expect(() => controller.selectAnswer('en_1_1'), throwsStateError);
@@ -136,32 +145,35 @@ void main() {
     expect(controller.previous, throwsStateError);
   });
 
-  test('new attempt resets answers, index and result and gets a new ID', () {
-    controller.start('english');
-    final id = session().assessment.id;
-    controller.selectAnswer('en_1_1');
-    controller.next();
-    controller.submit();
-    controller.start('english');
-    expect(session().assessment.id, isNot(id));
-    expect(session().selections, isEmpty);
-    expect(session().result, isNull);
-    expect(session().questionIndex, 0);
-  });
+  test(
+    'new attempt resets answers, index and result and gets a new ID',
+    () async {
+      await controller.start('english');
+      final id = session().assessment.id;
+      controller.selectAnswer('en_1_1');
+      controller.next();
+      controller.submit();
+      await controller.start('english');
+      expect(session().assessment.id, isNot(id));
+      expect(session().selections, isEmpty);
+      expect(session().result, isNull);
+      expect(session().questionIndex, 0);
+    },
+  );
 
-  test('invalid inputs cannot corrupt a valid session', () {
+  test('invalid inputs cannot corrupt a valid session', () async {
     expect(controller.submit, throwsStateError);
-    controller.start('english');
+    await controller.start('english');
     final original = session();
-    expect(() => controller.start('missing'), throwsArgumentError);
+    await expectLater(controller.start('missing'), throwsA(isA<AppFailure>()));
     expect(() => controller.selectAnswer('en_2_0'), throwsArgumentError);
     expect(identical(session(), original), isTrue);
   });
 
-  test('a fresh app container has no stored attempt or result', () {
-    controller.start('english');
+  test('a fresh app container has no stored attempt or result', () async {
+    await controller.start('english');
     controller.submit();
-    final fresh = ProviderContainer();
+    final fresh = testContainer();
     addTearDown(fresh.dispose);
     expect(fresh.read(assessmentControllerProvider), isNull);
   });

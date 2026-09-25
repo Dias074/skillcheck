@@ -11,11 +11,60 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/progress/presentation/progress_screen.dart';
 import '../../shared/widgets/feature_placeholder.dart';
 import 'main_navigation.dart';
+import '../../features/auth/application/auth_providers.dart';
+import '../../features/auth/presentation/auth_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authStateProvider, (_, next) {
+    refresh.value++;
+  });
+  ref.onDispose(refresh.dispose);
   final router = GoRouter(
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final auth = ref.read(authStateProvider);
+      final path = state.uri.path;
+      final publicRoute = [
+        '/login',
+        '/register',
+        '/forgot-password',
+      ].contains(path);
+      if (auth.user == null) return publicRoute ? null : '/login';
+      if (auth.passwordRecovery) {
+        return path == '/reset-password' ? null : '/reset-password';
+      }
+      if (publicRoute || path == '/') return '/home';
+      return null;
+    },
     initialLocation: '/home',
     routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) =>
+            const AuthScreen(key: ValueKey('login'), mode: AuthFormMode.login),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const AuthScreen(
+          key: ValueKey('register'),
+          mode: AuthFormMode.register,
+        ),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const AuthScreen(
+          key: ValueKey('forgot'),
+          mode: AuthFormMode.forgotPassword,
+        ),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) => const AuthScreen(
+          key: ValueKey('reset'),
+          mode: AuthFormMode.resetPassword,
+        ),
+      ),
       GoRoute(path: '/', redirect: (context, state) => '/home'),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

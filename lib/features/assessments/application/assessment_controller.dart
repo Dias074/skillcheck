@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/local/local_question_source.dart';
+import '../../../core/errors/app_failure.dart';
+import '../../auth/application/auth_providers.dart';
+import 'assessment_providers.dart';
 import '../domain/models/assessment.dart';
 import '../domain/models/assessment_result.dart';
 import '../domain/services/assessment_scorer.dart';
 import 'assessment_session.dart';
 
-final localQuestionSourceProvider = Provider(
-  (ref) => const LocalQuestionSource(),
-);
 final assessmentScorerProvider = Provider((ref) => const AssessmentScorer());
 final assessmentClockProvider = Provider<DateTime Function()>(
   (ref) => DateTime.now,
@@ -22,21 +21,48 @@ final assessmentControllerProvider =
 
 class AssessmentController extends Notifier<AssessmentSession?> {
   var _attemptNumber = 0;
+  var _generation = 0;
 
   @override
-  AssessmentSession? build() => null;
+  AssessmentSession? build() {
+    ref.watch(authStateProvider.select((auth) => auth.user?.id));
+    _generation++;
+    return null;
+  }
 
-  void start(String categoryId) {
-    final source = ref.read(localQuestionSourceProvider);
-    final category = source.category(categoryId);
+  Future<bool> start(String categoryId) async {
+    final generation = ++_generation;
+    final userId = ref.read(authStateProvider).user?.id;
+    if (userId == null) {
+      throw const AppFailure('Sign in before starting an assessment.');
+    }
+    final repository = ref.read(assessmentRepositoryProvider);
+    final categories = await repository.fetchCategories();
+    final matching = categories.where((category) => category.id == categoryId);
+    if (matching.isEmpty) {
+      throw const AppFailure('This assessment is no longer available.');
+    }
+    final category = matching.first;
+    final questions = await repository.fetchQuestions(categoryId);
+    if (!ref.mounted ||
+        generation != _generation ||
+        ref.read(authStateProvider).user?.id != userId) {
+      return false;
+    }
+    if (questions.isEmpty) {
+      throw const AppFailure(
+        'No questions are available for this category yet.',
+      );
+    }
     final startedAt = ref.read(assessmentClockProvider)();
     final assessment = Assessment(
-      id: 'local-${startedAt.microsecondsSinceEpoch}-${++_attemptNumber}',
+      id: 'attempt-${startedAt.microsecondsSinceEpoch}-${++_attemptNumber}',
       categoryId: categoryId,
-      questions: source.questions(categoryId),
+      questions: questions,
       startedAt: startedAt,
     );
     state = AssessmentSession(category: category, assessment: assessment);
+    return true;
   }
 
   AssessmentSession get _editable {
