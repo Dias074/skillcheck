@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/assessments/presentation/assessments_screen.dart';
+import '../../features/assessments/presentation/question_screen.dart';
+import '../../features/assessments/presentation/result_screen.dart';
+import '../../features/assessments/presentation/answer_review_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/progress/presentation/progress_screen.dart';
@@ -31,6 +34,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/assessments',
                 builder: (context, state) => const AssessmentsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'session',
+                    builder: (context, state) => const QuestionScreen(),
+                  ),
+                  GoRoute(
+                    path: 'result',
+                    builder: (context, state) => const ResultScreen(),
+                  ),
+                  GoRoute(
+                    path: 'review',
+                    builder: (context, state) => const AnswerReviewScreen(),
+                  ),
+                ],
               ),
             ],
           ),

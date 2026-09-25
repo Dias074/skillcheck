@@ -4,16 +4,20 @@ Knowledge assessment and learning progress app. Built incrementally as a Flutter
 
 ## Features
 
-Phase 1: Home, Assessments, Progress and Profile navigation; Material 3 light/dark themes; session-only appearance selection. Screens are placeholders. Authentication, quizzes and backend are not implemented.
+Phase 1: Home, Assessments, Progress and Profile navigation; Material 3 light/dark themes; session-only appearance selection. Profile and Progress remain placeholders. Authentication and backend are not implemented.
 
 Phase 2 adds pure Dart assessment models and scoring with unit tests.
 The scorer supports single-answer multiple choice and true/false questions,
 weighted points, and separate correct/incorrect/unanswered counts.
-The assessment UI remains a placeholder.
+Phase 3 connects this domain to a working local assessment flow:
+five categories with three demo questions each, answer selection, Previous/Next,
+optional skips, submission, weighted results and answer review.
+Only one attempt is held in memory. Starting another replaces it; restarting
+the app clears it. There is no persistent history or user progress.
 
 ## Screenshots
 
-Screenshots will be added after the assessment flow is implemented. Run the foundation preview locally for now.
+Screenshots will be added during portfolio preparation. Run the local prototype for now.
 
 ## Tech stack
 
@@ -28,7 +32,8 @@ Feature-based: app configuration in app/, feature UI in features/, reusable widg
 Domain flow: Category → Topic → Question + QuestionOption; an Assessment
 holds a fixed question snapshot. AssessmentScorer takes the assessment,
 AssessmentAnswer selections and an explicit completion time, then returns
-AssessmentResult. The UI is not connected to this flow yet.
+AssessmentResult. The UI calls an application-layer Riverpod controller,
+which owns navigation within the attempt and delegates scoring to the domain.
 
 Scoring: correct selections earn the question's positive integer points.
 Incorrect and omitted/null selections earn zero; omitted/null selections
@@ -36,7 +41,18 @@ count as unanswered, not incorrect. Percentage is earned points divided by
 all available points × 100, without rounding. Difficulty is metadata and
 does not apply an extra multiplier. Empty assessments, duplicate IDs/answers,
 foreign question/option references and completion before start are rejected.
-Local answer keys support the upcoming prototype; they are not a secure exam boundary.
+Local answer keys support this prototype; they are not a secure exam boundary.
+
+```text
+Assessment category → LocalQuestionSource → AssessmentController
+→ user selections → AssessmentScorer → AssessmentResult
+→ ResultScreen → AnswerReviewScreen
+```
+
+Demo content is isolated in data/local/. No new dependencies or changes to
+Phase 2 domain models were needed. Review is unavailable before submission;
+after submission the controller rejects edits. Tab navigation preserves the
+active attempt. Replacing an unfinished attempt requires confirmation.
 
 ```text
 main → ProviderScope → SkillCheckApp → MaterialApp.router
@@ -57,6 +73,8 @@ lib/
   features/
     home/presentation/
     assessments/
+      application/
+      data/local/
       domain/models/
       domain/services/
       presentation/
@@ -67,6 +85,7 @@ test/
 android/
 ios/
 windows/
+web/
 ```
 
 ## Database
@@ -85,31 +104,33 @@ cd skillcheck
 flutter pub get
 flutter doctor
 flutter devices
-flutter emulators --launch Pixel_9_Pro
-flutter run -d emulator-5554
+flutter run -d chrome
 ```
 
-Windows requires Visual Studio with Desktop development with C++. For Android, start an emulator or connect a device and run `flutter run -d <device-id>`. iOS requires macOS/Xcode. Windows is included for local preview; Android/iOS are the mobile targets.
+Chrome/Web is the primary development and manual testing target on this 8 GB
+RAM laptop. Do not launch or use the Android emulator. The web host runs the
+same Flutter application; Android support and the shared architecture remain intact.
 
-Use your own emulator ID from `flutter emulators` and device ID from
-`flutter devices`; the commands above show this development machine.
-For Windows, use `flutter run -d windows`.
+Final Android checks will use a physical phone after the main development
+phases. When the user connects it, identify it with `flutter devices` and run
+`flutter run -d <physical-device-id>`. iOS requires macOS/Xcode.
+The existing Windows host requires Visual Studio with Desktop development with C++.
 
 Known local Windows build issue: a Command Processor AutoRun command that prints
 CP1251 text (such as `chcp 1251`) can cause Flutter's UTF-8 decoder to fail.
-This machine has that configuration. Android is the alternative local run target.
+This machine has that configuration. Use Chrome for current manual verification.
 
 ## Environment variables
 
-None required in Phases 1–2. Environment files and signing keys are ignored. A safe configuration example will be added with the backend. Never put Supabase service-role credentials in the client.
+None required in Phases 1–3. Environment files and signing keys are ignored. A safe configuration example will be added with the backend. Never put Supabase service-role credentials in the client.
 
 ## Testing
 
 ```sh
-dart format --output=none --set-exit-if-changed lib test
+dart format lib test
 flutter analyze
 flutter test
-flutter build apk --debug
+flutter run -d chrome
 ```
 
 Widget tests cover navigation, theme changes, unknown-route recovery and small-screen layout with enlarged text.
@@ -126,13 +147,36 @@ Phase 1 verification: static analysis clean, all four widget tests pass,
 Android debug APK builds successfully. Windows build is blocked by the
 local encoding issue described above. iOS has not been built on this Windows host.
 
-Manual checks: visit each tab, click Explore assessments, select System/Light/Dark in Profile, and resize the window to test scrolling.
+Run these steps after each authorized phase. Emulator verification is not a
+completion requirement. Use `flutter build web` when checking the web build is useful.
+
+Manual checks in Chrome: visit each tab, click Explore assessments, select System/Light/Dark in Profile, and resize the browser window to test scrolling.
+
+Phase 3 tests add controller lifecycle, answer preservation, submission,
+review gating, category replacement, missing-session recovery, and the full
+UI flow including a narrow layout with enlarged text.
+
+Phase 3 verification: formatting and static analysis pass; all 49 tests pass.
+The web build succeeds, and the user has manually verified the assessment
+flow in Flutter Web / Chrome with no issues reported. Final Android testing
+is reserved for a physical phone after the main development phases.
+
+Manual assessment check in Chrome:
+
+1. Home → Explore assessments → Start English.
+2. Select goes, Next, then False. Previous should preserve goes.
+3. Return to question 2, Next, leave question 3 unanswered and Submit assessment.
+4. Expect 1/4 points, 25.0%, 1 correct, 1 incorrect and 1 skipped.
+5. Review answers: check the selection, correct answer and explanation for each question.
+6. Return to categories and start another subject. During an unfinished attempt,
+   switch tabs and return, or go back to categories and use Resume.
+7. Restart the app: the local attempt is cleared.
 
 ## Roadmap
 
 - [x] Phase 1: Foundation, themes and navigation
 - [x] Phase 2: Domain models and scoring
-- [ ] Phase 3: Local assessment prototype
+- [x] Phase 3: Local assessment prototype
 - [ ] Phase 4: Supabase, authentication and RLS
 - [ ] Phase 5: Progress history and charts
 - [ ] Phase 6: Weak-topic analysis

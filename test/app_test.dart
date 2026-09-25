@@ -11,7 +11,7 @@ void main() {
     expect(find.text('Welcome to SkillCheck'), findsOneWidget);
     await tester.tap(find.text('Explore assessments'));
     await tester.pumpAndSettle();
-    expect(find.text('Assessments are coming soon'), findsOneWidget);
+    expect(find.text('Local sample assessments'), findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       1,
