@@ -24,7 +24,7 @@ void main() {
       1,
     );
     for (final entry in {
-      'Progress': 'Progress tracking is coming soon',
+      'Progress': 'No completed assessments yet',
       'Profile': 'Account',
       'Home': 'Welcome to SkillCheck',
     }.entries) {

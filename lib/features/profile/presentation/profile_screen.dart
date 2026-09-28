@@ -5,6 +5,7 @@ import '../../../app/theme/theme_mode_provider.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../shared/widgets/page_content.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../assessments/application/assessment_controller.dart';
 import '../data/profile_repository.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -46,7 +47,32 @@ class ProfileScreen extends ConsumerWidget {
         OutlinedButton(
           onPressed: operation.isLoading
               ? null
-              : () => ref.read(authControllerProvider.notifier).logout(),
+              : () async {
+                  final session = ref.read(assessmentControllerProvider);
+                  if (session?.result != null && !session!.isSaved) {
+                    final leave = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Result not yet saved'),
+                        content: const Text(
+                          'Signing out clears the local result. Return to assessments and retry saving first, or sign out anyway.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Keep result'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Sign out anyway'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (leave != true || !context.mounted) return;
+                  }
+                  await ref.read(authControllerProvider.notifier).logout();
+                },
           child: Text(operation.isLoading ? 'Please wait…' : 'Log out'),
         ),
         const SizedBox(height: 24),

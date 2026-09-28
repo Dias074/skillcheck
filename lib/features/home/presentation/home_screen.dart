@@ -14,7 +14,7 @@ class HomeScreen extends StatelessWidget {
       FeaturePlaceholder(
         icon: Icons.school_outlined,
         title: 'Your learning journey starts here',
-        description: 'Try a short assessment in five subjects, see your score and review your answers. Results stay only in memory; progress tracking is coming later.',
+        description: 'Try a short assessment in five subjects, review your answers and follow your saved results in Progress.',
         action: FilledButton.icon(
           onPressed: () => context.go('/assessments'),
           icon: const Icon(Icons.arrow_forward),

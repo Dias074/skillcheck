@@ -95,7 +95,7 @@ void main() async {
         answers: before.answers,
         completedAt: now,
       );
-      final actual = controller.submit();
+      final actual = await controller.submit();
       expect(actual.score, expected.score);
       expect(actual.percentage, expected.percentage);
       expect(actual.correctAnswers, 1);
@@ -115,7 +115,7 @@ void main() async {
   test('all skipped submission is allowed and review stays locked until submission', () async {
     await controller.start('english');
     expect(() => session().review, throwsStateError);
-    final result = controller.submit();
+    final result = await controller.submit();
     expect(result.score, 0);
     expect(result.unansweredQuestions, 3);
     expect(
@@ -131,14 +131,14 @@ void main() async {
         controller.selectAnswer(session().currentQuestion.correctOptionId);
         controller.next();
       }
-      expect(controller.submit().percentage, 100);
+      expect((await controller.submit()).percentage, 100);
     }
   });
 
   test('submission is idempotent and blocks subsequent edits', () async {
     await controller.start('english');
-    final result = controller.submit();
-    expect(identical(controller.submit(), result), isTrue);
+    final result = await controller.submit();
+    expect(identical(await controller.submit(), result), isTrue);
     expect(() => controller.selectAnswer('en_1_1'), throwsStateError);
     expect(controller.clearAnswer, throwsStateError);
     expect(controller.next, throwsStateError);
@@ -152,7 +152,7 @@ void main() async {
       final id = session().assessment.id;
       controller.selectAnswer('en_1_1');
       controller.next();
-      controller.submit();
+      await controller.submit();
       await controller.start('english');
       expect(session().assessment.id, isNot(id));
       expect(session().selections, isEmpty);
@@ -172,7 +172,7 @@ void main() async {
 
   test('a fresh app container has no stored attempt or result', () async {
     await controller.start('english');
-    controller.submit();
+    await controller.submit();
     final fresh = testContainer();
     addTearDown(fresh.dispose);
     expect(fresh.read(assessmentControllerProvider), isNull);

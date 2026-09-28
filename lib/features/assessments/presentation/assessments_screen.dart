@@ -75,7 +75,7 @@ class _AssessmentsScreenState extends ConsumerState<AssessmentsScreen> {
       description: 'Choose an assessment',
       children: [
         const Text(
-          'Educational questions, not certified language levels or IQ tests. Your current attempt stays in memory only.',
+          'Educational questions, not certified language levels or IQ tests. Completed assessments are saved to your history; unfinished answers stay in this session.',
         ),
         const SizedBox(height: 16),
         if (session != null) ...[

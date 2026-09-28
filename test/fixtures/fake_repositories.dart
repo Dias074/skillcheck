@@ -13,6 +13,9 @@ import 'package:skillcheck/features/profile/data/profile_repository.dart';
 
 import 'local_question_source.dart';
 
+import 'package:skillcheck/features/progress/application/progress_providers.dart';
+import 'package:skillcheck/features/progress/domain/assessment_history.dart';
+
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({bool signedIn = true})
     : _current = signedIn
@@ -99,6 +102,7 @@ ProviderContainer testContainer({
   FakeAuthRepository? auth,
   AssessmentRepository? repository,
   DateTime Function()? clock,
+  ProgressRepository? progress,
 }) {
   final fake = auth ?? FakeAuthRepository();
   final container = ProviderContainer(
@@ -109,11 +113,56 @@ ProviderContainer testContainer({
       ),
       profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
       assessmentClockProvider.overrideWithValue(clock ?? DateTime.now),
+      progressRepositoryProvider.overrideWithValue(
+        progress ?? FakeProgressRepository(),
+      ),
     ],
   );
   // Repository disposal is normally owned by the production provider.
   container.read(authStateProvider);
   return container;
+}
+
+class FakeProgressRepository implements ProgressRepository {
+  final saved = <String, Map<String, HistoryAttempt>>{};
+  final submissions = <CompletedAssessment>[];
+  int saveCalls = 0;
+  int fetchCalls = 0;
+  bool failSave = false;
+  bool failAfterSave = false;
+  bool failFetch = false;
+  Completer<void>? pendingSave;
+  final pendingFetch = <String, Completer<List<HistoryAttempt>>>{};
+  @override
+  Future<void> saveAttempt(
+    String userId,
+    CompletedAssessment submission,
+  ) async {
+    saveCalls++;
+    submissions.add(submission);
+    if (pendingSave != null) await pendingSave!.future;
+    if (failSave) throw const AppFailure('Test save failure');
+    saved
+        .putIfAbsent(userId, () => {})
+        .putIfAbsent(
+          submission.result.assessmentId,
+          () => HistoryAttempt(
+            userId: userId,
+            categoryName: LocalQuestionSource.categories
+                .firstWhere((c) => c.id == submission.result.categoryId)
+                .name,
+            result: submission.result,
+          ),
+        );
+    if (failAfterSave) throw const AppFailure('Test lost response');
+  }
+
+  @override
+  Future<List<HistoryAttempt>> fetchHistory(String userId) async {
+    fetchCalls++;
+    if (failFetch) throw const AppFailure('Test history failure');
+    return pendingFetch[userId]?.future ?? saved[userId]?.values.toList() ?? [];
+  }
 }
 
 /// A deterministic repository with controllable failures/empty or pending loads.

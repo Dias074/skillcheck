@@ -36,6 +36,9 @@ class AssessmentSession {
     this.questionIndex = 0,
     Map<String, String> selections = const {},
     this.result,
+    this.isSaving = false,
+    this.isSaved = false,
+    this.saveError,
   }) : selections = Map.unmodifiable(selections);
 
   final Category category;
@@ -43,6 +46,9 @@ class AssessmentSession {
   final int questionIndex;
   final Map<String, String> selections;
   final AssessmentResult? result;
+  final bool isSaving;
+  final bool isSaved;
+  final String? saveError;
 
   Question get currentQuestion => assessment.questions[questionIndex];
   bool get isFirst => questionIndex == 0;
@@ -76,11 +82,17 @@ class AssessmentSession {
     int? questionIndex,
     Map<String, String>? selections,
     AssessmentResult? result,
+    bool? isSaving,
+    bool? isSaved,
+    String? saveError,
   }) => AssessmentSession(
     category: category,
     assessment: assessment,
     questionIndex: questionIndex ?? this.questionIndex,
     selections: selections ?? this.selections,
     result: result ?? this.result,
+    isSaving: isSaving ?? this.isSaving,
+    isSaved: isSaved ?? this.isSaved,
+    saveError: saveError,
   );
 }

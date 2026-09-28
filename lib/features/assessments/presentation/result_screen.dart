@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/page_content.dart';
 import '../application/assessment_controller.dart';
 import 'widgets/session_unavailable.dart';
+import 'widgets/assessment_save_status.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
@@ -16,8 +17,9 @@ class ResultScreen extends ConsumerWidget {
     if (session == null || result == null) return const SessionUnavailable();
     return PageContent(
       title: '${session.category.name} result',
-      description: 'Assessment result • Not saved to a history.',
+      description: 'Your completed assessment',
       children: [
+        const AssessmentSaveStatus(),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -54,6 +56,10 @@ class ResultScreen extends ConsumerWidget {
             OutlinedButton(
               onPressed: () => context.go('/assessments'),
               child: const Text('Back to assessments'),
+            ),
+            TextButton(
+              onPressed: () => context.go('/progress'),
+              child: const Text('View progress'),
             ),
             TextButton(
               onPressed: () => context.go('/home'),

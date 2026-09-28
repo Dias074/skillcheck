@@ -1,7 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_failure.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../progress/application/progress_providers.dart';
+import '../../progress/domain/assessment_history.dart';
 import 'assessment_providers.dart';
 import '../domain/models/assessment.dart';
 import '../domain/models/assessment_result.dart';
@@ -20,17 +24,23 @@ final assessmentControllerProvider =
     );
 
 class AssessmentController extends Notifier<AssessmentSession?> {
-  var _attemptNumber = 0;
   var _generation = 0;
+  Future<AssessmentResult>? _pendingSave;
 
   @override
   AssessmentSession? build() {
     ref.watch(authStateProvider.select((auth) => auth.user?.id));
     _generation++;
+    _pendingSave = null;
     return null;
   }
 
   Future<bool> start(String categoryId) async {
+    if (state?.result != null && !state!.isSaved) {
+      throw const AppFailure(
+        'Save your latest result before starting another assessment.',
+      );
+    }
     final generation = ++_generation;
     final userId = ref.read(authStateProvider).user?.id;
     if (userId == null) {
@@ -55,8 +65,13 @@ class AssessmentController extends Notifier<AssessmentSession?> {
       );
     }
     final startedAt = ref.read(assessmentClockProvider)();
+    final random = Random.secure();
+    final uniqueId = List.generate(
+      16,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
     final assessment = Assessment(
-      id: 'attempt-${startedAt.microsecondsSinceEpoch}-${++_attemptNumber}',
+      id: 'attempt-$uniqueId',
       categoryId: categoryId,
       questions: questions,
       startedAt: startedAt,
@@ -111,18 +126,63 @@ class AssessmentController extends Notifier<AssessmentSession?> {
     }
   }
 
-  AssessmentResult submit() {
-    final existing = state?.result;
-    if (existing != null) return existing;
-    final session = _editable;
-    final result = ref
-        .read(assessmentScorerProvider)
-        .score(
-          assessment: session.assessment,
-          answers: session.answers,
-          completedAt: ref.read(assessmentClockProvider)(),
+  Future<AssessmentResult> submit() {
+    if (_pendingSave != null) return _pendingSave!;
+    final session = state;
+    if (session == null) throw StateError('Start an assessment first.');
+    if (session.isSaved) return Future.value(session.result!);
+    final userId = ref.read(authStateProvider).user?.id;
+    if (userId == null) throw const AppFailure('Sign in before submitting.');
+    final result =
+        session.result ??
+        ref
+            .read(assessmentScorerProvider)
+            .score(
+              assessment: session.assessment,
+              answers: session.answers,
+              completedAt: ref.read(assessmentClockProvider)(),
+            );
+    state = session.copyWith(result: result, isSaving: true);
+    final generation = _generation;
+    return _pendingSave = _save(
+      userId,
+      generation,
+      CompletedAssessment(
+        assessment: session.assessment,
+        result: result,
+        answers: session.answers,
+      ),
+    );
+  }
+
+  Future<AssessmentResult> _save(
+    String userId,
+    int generation,
+    CompletedAssessment submission,
+  ) async {
+    bool isCurrent() =>
+        ref.mounted &&
+        generation == _generation &&
+        ref.read(authStateProvider).user?.id == userId;
+    try {
+      await ref
+          .read(progressRepositoryProvider)
+          .saveAttempt(userId, submission);
+      if (isCurrent()) {
+        state = state!.copyWith(isSaving: false, isSaved: true);
+        ref.invalidate(userHistoryProvider(userId));
+      }
+    } catch (error) {
+      if (isCurrent()) {
+        friendlyFailure(error, 'submit assessment');
+        state = state!.copyWith(
+          isSaving: false,
+          saveError: 'Saving could not be confirmed. Your answers and result are kept here. Retry before refreshing or signing out.',
         );
-    state = session.copyWith(result: result);
-    return result;
+      }
+    } finally {
+      if (isCurrent()) _pendingSave = null;
+    }
+    return submission.result;
   }
 }

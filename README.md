@@ -5,7 +5,8 @@ Knowledge assessment and learning progress app. Built incrementally as a Flutter
 ## Features
 
 Home, Assessments, Progress and Profile navigation use Material 3 light/dark
-themes. Progress remains a placeholder. Phase 4 adds Supabase email/password
+themes. Phase 5 adds persisted assessment history and a real Progress dashboard.
+Phase 4 adds Supabase email/password
 authentication, private profiles and remotely loaded assessment content.
 Phase 4 is complete: the user applied the schema/RLS and sample content migrations
 and verified the live integration in Chrome. See [Supabase setup](docs/supabase-setup.md).
@@ -16,8 +17,10 @@ weighted points, and separate correct/incorrect/unanswered counts.
 Phase 3 introduced the reusable assessment flow:
 five categories with three demo questions each, answer selection, Previous/Next,
 optional skips, submission, weighted results and answer review.
-Only one attempt is held in memory. Starting another replaces it; restarting
-the app clears it. Logout also clears it. There is no persistent history or user progress.
+Only one active attempt is held in memory. Completed attempts and answers are
+saved to Supabase; Progress history survives refresh, logout/login and restart.
+Unfinished attempts and current answer review remain session-local. Failed saves
+retain the result for retry; save before refreshing or closing the app.
 
 ## Screenshots
 
@@ -28,7 +31,8 @@ Screenshots will be added during portfolio preparation. Run the local prototype 
 Flutter 3.47.4 / Dart 3.13.3, Material 3, flutter_riverpod 3.4.3, go_router 18.0.1, flutter_lints and flutter_test.
 
 Phase 4 adds the official supabase_flutter package (including its session
-storage dependencies). Charts and standalone preference persistence remain future work.
+storage dependencies). Phase 5 adds fl_chart for recent assessment percentages.
+Standalone preference persistence remains future work.
 
 ## Architecture
 
@@ -104,7 +108,9 @@ Phase 4 provides migrations for profiles, categories, topics, questions and
 question_options, a profile trigger and least-privilege RLS. These migrations
 have been applied manually by the user to the configured project. For a new
 project, follow [these instructions](docs/supabase-setup.md); do not reapply the
-initial schema to the existing project. Assessment history remains future work.
+initial schema to the existing project. The Phase 5 history migration and its
+SQL RLS test were also applied/run successfully by the user. See
+[Phase 5 implementation and testing](docs/phase-5-history.md).
 
 ## Getting started
 
@@ -191,7 +197,7 @@ Supabase, assessment navigation, answer preservation, skips, scoring, results
 and answer review. Anonymous content access was separately checked and denied.
 The dedicated two-user SQL RLS test has not been reported as executed; app
 route protection alone does not prove database row isolation. Native checks
-remain reserved for a physical phone. Phase 5 has not started.
+remain reserved for a physical phone.
 
 1. Home → Explore assessments → Start English.
 2. Select goes, Next, then False. Previous should preserve goes.
@@ -208,7 +214,7 @@ remain reserved for a physical phone. Phase 5 has not started.
 - [x] Phase 2: Domain models and scoring
 - [x] Phase 3: Local assessment prototype
 - [x] Phase 4: Supabase authentication, profiles and assessment content; live Chrome verification complete
-- [ ] Phase 5: Progress history and charts
+- [x] Phase 5: Persisted assessment history, Progress dashboard, filtering and chart; manual Chrome verification complete
 - [ ] Phase 6: Weak-topic analysis
 - [ ] Phase 7: Rule-based practice
 - [ ] Phase 8: UI polish and accessibility

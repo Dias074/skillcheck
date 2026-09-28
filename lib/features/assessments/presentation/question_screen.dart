@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/page_content.dart';
 import '../application/assessment_controller.dart';
 import 'widgets/session_unavailable.dart';
+import 'widgets/assessment_save_status.dart';
 
 class QuestionScreen extends ConsumerWidget {
   const QuestionScreen({super.key});
@@ -18,6 +19,7 @@ class QuestionScreen extends ConsumerWidget {
         title: 'Assessment submitted',
         description: 'Your answers are locked.',
         children: [
+          const AssessmentSaveStatus(),
           FilledButton(
             onPressed: () => context.go('/assessments/result'),
             child: const Text('View result'),
@@ -97,9 +99,13 @@ class QuestionScreen extends ConsumerWidget {
               )
             else
               FilledButton(
-                onPressed: () {
-                  controller.submit();
-                  context.go('/assessments/result');
+                onPressed: () async {
+                  final result = await controller.submit();
+                  if (!context.mounted) return;
+                  final current = ref.read(assessmentControllerProvider);
+                  if (current?.result == result && current!.isSaved) {
+                    context.go('/assessments/result');
+                  }
                 },
                 child: const Text('Submit assessment'),
               ),
