@@ -6,6 +6,7 @@ import '../../../core/errors/app_failure.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../progress/application/progress_providers.dart';
 import '../../progress/domain/assessment_history.dart';
+import '../../weak_areas/application/weak_areas_providers.dart';
 import 'assessment_providers.dart';
 import '../domain/models/assessment.dart';
 import '../domain/models/assessment_result.dart';
@@ -171,6 +172,7 @@ class AssessmentController extends Notifier<AssessmentSession?> {
       if (isCurrent()) {
         state = state!.copyWith(isSaving: false, isSaved: true);
         ref.invalidate(userHistoryProvider(userId));
+        ref.invalidate(userTopicAnswersProvider(userId));
       }
     } catch (error) {
       if (isCurrent()) {

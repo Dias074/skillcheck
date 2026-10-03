@@ -13,6 +13,9 @@ import 'package:skillcheck/features/profile/data/profile_repository.dart';
 
 import 'local_question_source.dart';
 
+import 'package:skillcheck/features/weak_areas/domain/topic_performance.dart';
+import 'package:skillcheck/features/weak_areas/application/weak_areas_providers.dart';
+
 import 'package:skillcheck/features/progress/application/progress_providers.dart';
 import 'package:skillcheck/features/progress/domain/assessment_history.dart';
 
@@ -103,6 +106,7 @@ ProviderContainer testContainer({
   AssessmentRepository? repository,
   DateTime Function()? clock,
   ProgressRepository? progress,
+  TopicPerformanceRepository? topics,
 }) {
   final fake = auth ?? FakeAuthRepository();
   final container = ProviderContainer(
@@ -116,11 +120,28 @@ ProviderContainer testContainer({
       progressRepositoryProvider.overrideWithValue(
         progress ?? FakeProgressRepository(),
       ),
+      topicRepositoryProvider.overrideWithValue(
+        topics ?? FakeTopicRepository(),
+      ),
     ],
   );
   // Repository disposal is normally owned by the production provider.
   container.read(authStateProvider);
   return container;
+}
+
+class FakeTopicRepository implements TopicPerformanceRepository {
+  List<TopicAnswer> answers = [];
+  bool fail = false;
+  int calls = 0;
+  final pending = <String, Completer<List<TopicAnswer>>>{};
+  @override
+  Future<List<TopicAnswer>> fetchAnswers(String userId) async {
+    calls++;
+    if (fail) throw const AppFailure('Test topic failure');
+    return pending[userId]?.future ??
+        answers.where((a) => a.userId == userId).toList();
+  }
 }
 
 class FakeProgressRepository implements ProgressRepository {

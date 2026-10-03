@@ -11,6 +11,8 @@ import '../domain/assessment_history.dart';
 import '../domain/progress_summary.dart';
 import 'history_list.dart';
 import 'progress_chart.dart';
+import '../../weak_areas/presentation/weak_areas_section.dart';
+import '../../weak_areas/application/weak_areas_providers.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -27,7 +29,10 @@ class ProgressScreen extends ConsumerWidget {
           child: TextButton.icon(
             onPressed: userId == null || history.isLoading
                 ? null
-                : () => ref.invalidate(userHistoryProvider(userId)),
+                : () {
+                    ref.invalidate(userHistoryProvider(userId));
+                    ref.invalidate(userTopicAnswersProvider(userId));
+                  },
             icon: const Icon(Icons.refresh),
             label: const Text('Refresh history'),
           ),
@@ -101,6 +106,8 @@ class _ProgressContent extends ConsumerWidget {
         const Text(
           'Average of assessment percentages; each attempt has equal weight.',
         ),
+        const SizedBox(height: 24),
+        const WeakAreasSection(),
         const SizedBox(height: 24),
         if (summary.total == 0) ...[
           Text(

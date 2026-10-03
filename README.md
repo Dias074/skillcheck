@@ -6,6 +6,8 @@ Knowledge assessment and learning progress app. Built incrementally as a Flutter
 
 Home, Assessments, Progress and Profile navigation use Material 3 light/dark
 themes. Phase 5 adds persisted assessment history and a real Progress dashboard.
+Phase 6 adds per-topic performance and deterministic Weak Areas inside Progress.
+See [the algorithm, data assumptions and manual checks](docs/phase-6-weak-areas.md).
 Phase 4 adds Supabase email/password
 authentication, private profiles and remotely loaded assessment content.
 Phase 4 is complete: the user applied the schema/RLS and sample content migrations
@@ -215,7 +217,7 @@ remain reserved for a physical phone.
 - [x] Phase 3: Local assessment prototype
 - [x] Phase 4: Supabase authentication, profiles and assessment content; live Chrome verification complete
 - [x] Phase 5: Persisted assessment history, Progress dashboard, filtering and chart; manual Chrome verification complete
-- [ ] Phase 6: Weak-topic analysis
+- [x] Phase 6: Topic performance and Weak Areas; manual Chrome verification complete
 - [ ] Phase 7: Rule-based practice
 - [ ] Phase 8: UI polish and accessibility
 - [ ] Phase 9: Portfolio preparation
