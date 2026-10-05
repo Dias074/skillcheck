@@ -1,41 +1,30 @@
-# Phase 4 Supabase setup
+# Supabase setup
 
 ## Status
 
-Phase 4 implementation, two migrations and a database verification script are
-present in the workspace, awaiting the user's separate commit instruction.
-The user manually applied the schema/RLS and sample content migrations to the
-remote project (5 categories, 15 questions). Real client configuration exists
-only in the Git-ignored `config/supabase.local.json`. Tests use fake repositories.
-
-Local checks: formatting, static analysis and all 61 tests pass; the web
-release build succeeds. Chrome debug launch succeeds on port 7357.
-On 2026-09-25 the user successfully verified registration with display name,
-email confirmation, sign-in/session, profile data, logout, protected-route
-redirects, password reset and sign-in with the new password. Live categories,
-questions/options, Previous/Next, preserved answers, skips, scoring, results
-and answer review also passed. Email confirmation is enabled; anonymous
-content access was independently checked and denied (HTTP 401).
-
-The dedicated two-user SQL RLS test below has not been reported as executed.
-UI route checks do not prove cross-user database isolation. Native callbacks
-remain for final physical-device testing. Phase 5 has not started.
+The current project has all three migrations applied. Auth and assessment flows
+were manually verified; history persistence and `phase5_history_rls.sql` were
+verified in Phase 5. Android/Chrome UI checks passed through Phase 8.
+The Phase 4-specific SQL test has not separately been reported as executed.
+For current test counts and limitations see the root README. Earlier phase
+reports are historical records, not current setup instructions.
 
 ## 1. Apply the schema and sample content
 
 Already completed manually for the current project. The following instructions
 are for a new setup; do not rerun the initial schema on the configured project.
 
-The Supabase CLI is not installed/linked in this workspace. Do not improvise
-with database credentials. In your existing **SkillCheck** project:
+These steps use the dashboard and do not require the Supabase CLI or database
+credentials in Flutter. In your new **SkillCheck** Supabase project:
 
 1. Open Supabase Dashboard → SQL Editor → New query.
 2. Copy and run the entire `supabase/migrations/20260925000100_initial_schema.sql`.
 3. In another query, run the entire `supabase/migrations/20260925000200_sample_content.sql`.
-4. Check the five public tables and RLS policies in the dashboard.
+4. Run `supabase/migrations/20260928000100_assessment_history.sql` for attempts, answers and their save RPC. Check table RLS policies in the dashboard.
 5. Run `supabase/tests/phase4_rls.sql` in SQL Editor. It creates synthetic users
    inside a transaction, checks isolation/read-only content and rolls everything
    back. If a statement fails, run `ROLLBACK;` before trying another query.
+6. Run `supabase/tests/phase5_history_rls.sql` in SQL Editor; it also rolls back its synthetic test data.
 
 Only apply the initial migration once to a project without these tables.
 If similarly named tables already exist, inspect them before applying SQL.
@@ -150,9 +139,9 @@ token must not return user B's profile; content writes must fail.
   no direct execute grant to clients.
 - Answer keys/explanations are readable by signed-in clients because scoring
   and review remain local. This is not an anti-cheat/secure examination system.
-- No assessment attempts, history or statistics are persisted in Phase 4.
+- The third migration persists assessment attempts and answers; Practice remains memory-only.
 
-## Android and iOS later
+## Native callbacks
 
 Do not launch an emulator. The Android manifest includes Internet permission
 and the `com.dias.skillcheck://auth-callback/` link; iOS registers the same scheme.

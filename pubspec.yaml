@@ -1,5 +1,6 @@
 name: skillcheck
-description: Knowledge assessment and learning progress app.
+description: A Flutter learning app with skill assessments, progress tracking and weak-topic practice.
+repository: https://github.com/Dias074/skillcheck
 publish_to: 'none'
 version: 0.1.0+1
 

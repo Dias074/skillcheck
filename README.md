@@ -1,234 +1,198 @@
 # SkillCheck
 
-Knowledge assessment and learning progress app. Built incrementally as a Flutter portfolio project.
+**Test your skills. Track your progress.**
+
+A Flutter learning app for short assessments, saved progress and targeted weak-topic
+practice. Built as a Software Engineering portfolio project by Dias Nygman (Astana IT
+University, mobile development dual education at WONK).
 
 ## Features
 
-Home, Assessments, Progress and Profile navigation use Material 3 light/dark
-themes. Phase 5 adds persisted assessment history and a real Progress dashboard.
-Phase 6 adds per-topic performance and deterministic Weak Areas inside Progress.
-See [the algorithm, data assumptions and manual checks](docs/phase-6-weak-areas.md).
-Phase 4 adds Supabase email/password
-authentication, private profiles and remotely loaded assessment content.
-Phase 4 is complete: the user applied the schema/RLS and sample content migrations
-and verified the live integration in Chrome. See [Supabase setup](docs/supabase-setup.md).
+- Email/password sign-up, email confirmation, sign-in, password recovery and profile.
+- Five seeded categories: English, Kazakh, Russian, Logic & Reasoning, Programming.
+- Multiple-choice and true/false questions, Previous/Next, optional skips and answer review.
+- Weighted scores, saved assessment history, category filters and recent-progress chart.
+- Deterministic topic performance and Weak Areas based on real saved answers.
+- Separate practice sessions using questions from confirmed weak topics.
+- Material 3 Light/Dark/System themes and responsive Android/Web screens.
 
-Phase 2 adds pure Dart assessment models and scoring with unit tests.
-The scorer supports single-answer multiple choice and true/false questions,
-weighted points, and separate correct/incorrect/unanswered counts.
-Phase 3 introduced the reusable assessment flow:
-five categories with three demo questions each, answer selection, Previous/Next,
-optional skips, submission, weighted results and answer review.
-Only one active attempt is held in memory. Completed attempts and answers are
-saved to Supabase; Progress history survives refresh, logout/login and restart.
-Unfinished attempts and current answer review remain session-local. Failed saves
-retain the result for retry; save before refreshing or closing the app.
+Android and Chrome flows were manually verified through Phase 8. This is an
+educational portfolio app, not a certified language-level test or IQ assessment.
 
 ## Screenshots
 
-Screenshots will be added during portfolio preparation. Run the local prototype for now.
+Real screenshots supplied by the author from the running Web app in dark mode.
+Click an image to view it at full size.
 
-## Tech stack
+| Home | Assessment selection |
+| --- | --- |
+| [![SkillCheck Home](docs/screenshots/home.png)](docs/screenshots/home.png) | [![Available assessment categories](docs/screenshots/assessment.png)](docs/screenshots/assessment.png) |
+| **Progress chart and category performance** | **Weak Areas and practice action** |
+| [![Recent progress and category performance](docs/screenshots/progress.png)](docs/screenshots/progress.png) | [![Confirmed weak grammar topic and Practice weak topics action](docs/screenshots/weak-areas.png)](docs/screenshots/weak-areas.png) |
+| **Practice result** | **Assessment history** |
+| [![English practice result with score and review action](docs/screenshots/practice-result.png)](docs/screenshots/practice-result.png) | [![Saved assessment history](docs/screenshots/history.png)](docs/screenshots/history.png) |
 
-Flutter 3.47.4 / Dart 3.13.3, Material 3, flutter_riverpod 3.4.3, go_router 18.0.1, flutter_lints and flutter_test.
+## Tech Stack
 
-Phase 4 adds the official supabase_flutter package (including its session
-storage dependencies). Phase 5 adds fl_chart for recent assessment percentages.
-Standalone preference persistence remains future work.
+Flutter **3.47.4 stable**, Dart **3.13.3**, Material 3, Riverpod, GoRouter,
+Supabase Flutter (Auth/PostgreSQL), and fl_chart. Unit/widget tests use flutter_test;
+HTTP repository tests use mocked responses. Dependency versions are locked in
+`pubspec.lock`; CI uses the same Flutter version as local verification.
 
 ## Architecture
 
-Feature-based: app configuration in app/, feature UI in features/, reusable widgets in shared/. Assessment models and scoring live in features/assessments/domain/ and have no Flutter, Riverpod or backend dependencies.
-
-Domain flow: Category → Topic → Question + QuestionOption; an Assessment
-holds a fixed question snapshot. AssessmentScorer takes the assessment,
-AssessmentAnswer selections and an explicit completion time, then returns
-AssessmentResult. The UI calls an application-layer Riverpod controller,
-which owns navigation within the attempt and delegates scoring to the domain.
-
-Scoring: correct selections earn the question's positive integer points.
-Incorrect and omitted/null selections earn zero; omitted/null selections
-count as unanswered, not incorrect. Percentage is earned points divided by
-all available points × 100, without rounding. Difficulty is metadata and
-does not apply an extra multiplier. Empty assessments, duplicate IDs/answers,
-foreign question/option references and completion before start are rejected.
-Answer keys are available to authenticated clients for scoring/review;
-this educational app is not a secure exam boundary.
-
 ```text
-Assessment category → SupabaseAssessmentRepository → AssessmentController
-→ user selections → AssessmentScorer → AssessmentResult
-→ ResultScreen → AnswerReviewScreen
+UI → Riverpod / Application → Repository → Supabase / PostgreSQL + RLS
+                  ↓
+          Pure Dart domain logic
 ```
 
-Sample content is seeded by versioned SQL. The former local source lives in
-test/fixtures/ and is never used by production runtime. Phase 2 models and
-scorer remain unchanged. Review is unavailable before submission;
-after submission the controller rejects edits. Tab navigation preserves the
-active attempt. Replacing an unfinished attempt requires confirmation.
+- **Assessment:** session controller, immutable question snapshot, scoring and review.
+- **Progress:** persistence/retry, user history and dashboard summaries.
+- **Weak Areas:** saved-answer aggregation and replaceable deterministic policy.
+- **Practice:** question selection plus a separate instance of the existing session
+  controller; reuses question/result/review UI without saving assessment history.
 
-```text
-main → ProviderScope → SkillCheckApp → MaterialApp.router
-     → GoRouter → MainNavigation → selected screen
-```
-
-The router owns the selected tab and preserves tab branches. Riverpod owns theme selection. Updating the theme does not recreate the router. Theme selection resets to System on restart.
-
-## Project structure
+See [architecture and data lifetime](docs/architecture.md) for responsibilities,
+security boundaries and implementation entry points.
 
 ```text
 lib/
-  main.dart
-  app/
-    app.dart
-    router/
-    theme/
-  features/
-    home/presentation/
-    assessments/
-      application/
-      data/
-      domain/models/
-      domain/services/
-      presentation/
-    progress/presentation/
-    profile/presentation/
-    auth/
-  shared/widgets/
-test/
-android/
-ios/
-windows/
-web/
+  app/                  # App, routing, theme
+  core/                 # Configuration, failures, Supabase setup
+  features/             # Auth, assessments, progress, weak_areas, practice, home, profile
+  shared/widgets/       # Shared presentation
+test/                  # Unit/widget/repository tests and test-only fixtures
+supabase/              # Versioned SQL migrations and database RLS checks
+config/                # Safe example; real *.local.json files are ignored
+docs/                  # Setup, architecture and verification notes
+.github/workflows/     # Flutter CI
 ```
 
-## Database
+### Assessment → History → Weak Areas → Practice
 
-File responsibilities: [Phase 1 inventory](docs/phase-1-files.md).
+An assessment loads Supabase questions, collects answers and uses `AssessmentScorer`.
+Correct answers earn their question points; wrong/skipped answers earn zero.
+Completed attempts and answers are saved atomically with duplicate-save protection.
+History feeds topic statistics. A topic is weak below **60%**, only after at least
+**5 answered questions**, **2 answered attempts**, and **2 distinct questions**.
+Skipped answers do not count toward this evidence or topic percentage.
 
-Phase 4 provides migrations for profiles, categories, topics, questions and
-question_options, a profile trigger and least-privilege RLS. These migrations
-have been applied manually by the user to the configured project. For a new
-project, follow [these instructions](docs/supabase-setup.md); do not reapply the
-initial schema to the existing project. The Phase 5 history migration and its
-SQL RLS test were also applied/run successfully by the user. See
-[Phase 5 implementation and testing](docs/phase-5-history.md).
+Practice selects **2–5 distinct questions** from confirmed weak topics in one
+category. It stays in memory and does **not** change history, averages or Weak
+Areas. Complete a later regular assessment to record improvement.
 
-## Getting started
+## Supabase setup
 
-Use Flutter stable compatible with Dart 3.13.3 or newer.
+Supabase provides authentication and hosted PostgreSQL. Row Level Security (RLS)
+restricts profiles, attempts and answers to their owner. Signed-in users can read
+question content, but cannot edit it.
+
+For a **new Supabase project**, apply the three migrations in filename order and
+configure email Auth/redirects using [the setup guide](docs/supabase-setup.md).
+Do not reapply initial migrations to an already configured database. SQL RLS tests
+are separate from Flutter tests and roll back their test data.
+
+## Local development
+
+Install Flutter 3.47.4 stable and Chrome; Android also needs the Android SDK/JDK
+reported by `flutter doctor`. Use a connected physical Android phone.
 
 ```sh
 git clone https://github.com/Dias074/skillcheck.git
 cd skillcheck
-flutter pub get
 flutter doctor
-flutter devices
+flutter pub get
+```
+
+Copy the safe example to an ignored local file:
+
+```powershell
+# PowerShell
+Copy-Item config/supabase.example.json config/supabase.local.json
+```
+
+On macOS/Linux use `cp config/supabase.example.json config/supabase.local.json`.
+Fill `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` with your project's **client**
+values. Leave `AUTH_REDIRECT_URL` as `http://localhost:7357/` for Web.
+Never use a database password or service_role/secret key.
+
+### Web
+
+```sh
 flutter run -d chrome --web-port 7357 --dart-define-from-file=config/supabase.local.json
 ```
 
-Chrome/Web is the primary development and manual testing target on this 8 GB
-RAM laptop. Do not launch or use the Android emulator. The web host runs the
-same Flutter application; Android support and the shared architecture remain intact.
+Allow `http://localhost:7357/` and `http://localhost:7357/?flow=recovery` in Supabase
+Auth redirect settings. Open email callbacks in the requesting browser/profile.
+Missing configuration displays a setup screen; it does not enable fake data.
 
-Final Android checks will use a physical phone after the main development
-phases. When the user connects it, identify it with `flutter devices` and run
-`flutter run -d <physical-device-id>`. iOS requires macOS/Xcode.
-The existing Windows host requires Visual Studio with Desktop development with C++.
+### Android
 
-Known local Windows build issue: a Command Processor AutoRun command that prints
-CP1251 text (such as `chcp 1251`) can cause Flutter's UTF-8 decoder to fail.
-This machine has that configuration. Use Chrome for current manual verification.
-
-## Environment variables
-
-Copy config/supabase.example.json to the ignored config/supabase.local.json.
-Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and AUTH_REDIRECT_URL.
-The publishable client key is visible in the compiled app; security depends
-on authentication and RLS. Never put server credentials in the client.
-Without configuration, the app shows setup instructions.
-
-## Testing
+Copy the example to `config/supabase.android.local.json`, enter the same client
+values and set `AUTH_REDIRECT_URL` to `com.dias.skillcheck://auth-callback/`.
+Allow that URI and `com.dias.skillcheck://auth-callback/?flow=recovery` in Supabase.
 
 ```sh
-dart format lib test tool
+flutter devices
+flutter run -d <physical-device-id> --dart-define-from-file=config/supabase.android.local.json
+```
+
+Both local JSON files are ignored. Development uses Chrome or a physical phone;
+no Android emulator is needed. Android and Web share application/domain logic.
+
+## Testing and CI
+
+```sh
+dart format .
 flutter analyze
 flutter test
-flutter run -d chrome --web-port 7357 --dart-define-from-file=config/supabase.local.json
+git diff --check
 ```
 
-Widget tests cover navigation, theme changes, unknown-route recovery and small-screen layout with enlarged text.
+For a non-mutating formatting check: `dart format --output=none --set-exit-if-changed .`.
+The Phase 8 baseline is **113 passing tests**, including 13 UI/regression tests.
+Tests use fake repositories/mock HTTP and need **no Supabase project, keys or
+local JSON file**. They do not replace live database RLS checks or manual tests.
 
-Domain unit tests cover weighted scoring, both question types, skips, precision,
-input order, invalid submissions, timestamps and immutable question snapshots.
-Run only Phase 2 tests with:
+[Flutter CI](.github/workflows/flutter-ci.yml) runs on pushes to `main` and pull
+requests: checkout, pinned Flutter setup, dependency installation, formatting,
+analysis and all tests. It does not deploy or create releases. Its first hosted
+run is pending the eventual commit/push; no passing CI badge is claimed.
 
-```sh
-flutter test test/features/assessments/domain
-```
+## Security notes
 
-Phase 1 verification: static analysis clean, all four widget tests pass,
-Android debug APK builds successfully. Windows build is blocked by the
-local encoding issue described above. iOS has not been built on this Windows host.
+- `config/*.local.json`, environment files, signing keys and build output are ignored.
+- A publishable key is visible in the client by design; Auth and RLS enforce access.
+  Server/service_role keys bypass protections and must never be shipped in Flutter.
+- Answer keys and scoring are client-visible. This is **not a tamper-proof exam**;
+  RLS protects ownership, not the honesty of a client-submitted score.
+- Never disable RLS to fix an application error. See the setup guide for SQL checks.
 
-Run these steps after each authorized phase. Emulator verification is not a
-completion requirement. Use `flutter build web` when checking the web build is useful.
+## Current limitations
 
-Manual checks in Chrome: visit each tab, click Explore assessments, select System/Light/Dark in Profile, and resize the browser window to test scrolling.
+- Small educational seed: 15 questions across five categories; no content editor.
+- Active sessions, current result/review and theme choice are memory-only. Saved
+  history persists, but historical attempts cannot yet be reopened for full review.
+- Practice repeats a deterministic selection and is not saved. Failed assessment
+  saves must be retried before refresh/logout; there is no offline queue.
+- Topic analytics use current question metadata; version content rather than
+  changing the points/topic of questions already used in history.
+- Android release signing still uses the development key. Store signing, branding
+  assets and distribution need separate preparation. No release/tag is published.
+- iOS/Windows scaffolding is retained but not verified to the same level as Android/Web.
+- No AI, formal accessibility certification or coverage claim.
 
-Phase 3 tests add controller lifecycle, answer preservation, submission,
-review gating, category replacement, missing-session recovery, and the full
-UI flow including a narrow layout with enlarged text.
+## Future improvements
 
-Phase 3 verification: formatting and static analysis pass; all 49 tests pass.
-The web build succeeds, and the user has manually verified the assessment
-flow in Flutter Web / Chrome with no issues reported. Final Android testing
-is reserved for a physical phone after the main development phases.
+Configure release signing and review branding before public distribution. Possible follow-ups include a larger reviewed question bank,
+historical answer review, durable preferences, offline save recovery and separately
+stored practice analytics. These are ideas, not implemented features.
 
-Manual assessment check in Chrome:
+Phase 9 repository/CI preparation has passed final review. Previous audit and
+manual checks: [Phase 8](docs/phase-8-polish.md), [Practice](docs/phase-7-practice.md),
+[Weak Areas](docs/phase-6-weak-areas.md), [History](docs/phase-5-history.md).
 
-For a new installation, first apply migrations, configure redirect URLs and
-sign in. The current local configuration and live integration have been verified.
-Unit/widget tests use fake repositories and do not require a Supabase project.
+## Copyright
 
-Phase 4 manual verification (user, 2026-09-25): registration, email confirmation,
-sign-in/session, profile email/display name, logout, protected-route redirects,
-password recovery and sign-in with the new password all passed in Chrome.
-The user also verified loading 5 categories and their questions/options from
-Supabase, assessment navigation, answer preservation, skips, scoring, results
-and answer review. Anonymous content access was separately checked and denied.
-The dedicated two-user SQL RLS test has not been reported as executed; app
-route protection alone does not prove database row isolation. Native checks
-remain reserved for a physical phone.
-
-1. Home → Explore assessments → Start English.
-2. Select goes, Next, then False. Previous should preserve goes.
-3. Return to question 2, Next, leave question 3 unanswered and Submit assessment.
-4. Expect 1/4 points, 25.0%, 1 correct, 1 incorrect and 1 skipped.
-5. Review answers: check the selection, correct answer and explanation for each question.
-6. Return to categories and start another subject. During an unfinished attempt,
-   switch tabs and return, or go back to categories and use Resume.
-7. Restart the app: the local attempt is cleared.
-
-## Roadmap
-
-- [x] Phase 1: Foundation, themes and navigation
-- [x] Phase 2: Domain models and scoring
-- [x] Phase 3: Local assessment prototype
-- [x] Phase 4: Supabase authentication, profiles and assessment content; live Chrome verification complete
-- [x] Phase 5: Persisted assessment history, Progress dashboard, filtering and chart; manual Chrome verification complete
-- [x] Phase 6: Topic performance and Weak Areas; manual Chrome verification complete
-- [x] Phase 7: Weak Topic Practice; manual Android and Chrome verification complete ([details](docs/phase-7-practice.md))
-- [x] Phase 8: UI polish and accessibility; manual Android and Chrome verification complete ([audit and checklist](docs/phase-8-polish.md))
-- [ ] Phase 9: Portfolio preparation
-- [ ] Future: AI recommendations
-
-Planned language levels are educational estimates, not CEFR certification. Logic & Reasoning will not be presented as a validated IQ test.
-
-## License
-
-No license selected yet; planned for portfolio preparation.
-
-## Author
-
-Dias — Software Engineering student at Astana IT University, learning mobile development through dual education at WONK.
+Copyright © 2026 Dias Nygman. All rights reserved. This project is provided for portfolio and educational viewing purposes only.

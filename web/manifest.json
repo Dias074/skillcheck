@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#356859",
-    "description": "Knowledge assessment and learning progress.",
+    "description": "Test your skills. Track your progress.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
