@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_failure.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../practice/domain/practice_question_selector.dart';
 import '../../progress/application/progress_providers.dart';
 import '../../progress/domain/assessment_history.dart';
 import '../../weak_areas/application/weak_areas_providers.dart';
+import '../../weak_areas/domain/topic_performance.dart';
 import 'assessment_providers.dart';
 import '../domain/models/assessment.dart';
 import '../domain/models/assessment_result.dart';
@@ -24,7 +26,17 @@ final assessmentControllerProvider =
       AssessmentController.new,
     );
 
+enum SessionMode { assessment, practice }
+
+final practiceControllerProvider =
+    NotifierProvider<AssessmentController, AssessmentSession?>(
+      () => AssessmentController(mode: SessionMode.practice),
+    );
+
 class AssessmentController extends Notifier<AssessmentSession?> {
+  AssessmentController({this.mode = SessionMode.assessment});
+  final SessionMode mode;
+  bool get isPractice => mode == SessionMode.practice;
   var _generation = 0;
   Future<AssessmentResult>? _pendingSave;
 
@@ -37,7 +49,7 @@ class AssessmentController extends Notifier<AssessmentSession?> {
   }
 
   Future<bool> start(String categoryId) async {
-    if (state?.result != null && !state!.isSaved) {
+    if (!isPractice && state?.result != null && !state!.isSaved) {
       throw const AppFailure(
         'Save your latest result before starting another assessment.',
       );
@@ -54,7 +66,32 @@ class AssessmentController extends Notifier<AssessmentSession?> {
       throw const AppFailure('This assessment is no longer available.');
     }
     final category = matching.first;
-    final questions = await repository.fetchQuestions(categoryId);
+    var questions = await repository.fetchQuestions(categoryId);
+    if (!ref.mounted ||
+        generation != _generation ||
+        ref.read(authStateProvider).user?.id != userId) {
+      return false;
+    }
+    if (isPractice) {
+      final answers = await ref
+          .read(topicRepositoryProvider)
+          .fetchAnswers(userId);
+      if (!ref.mounted ||
+          generation != _generation ||
+          ref.read(authStateProvider).user?.id != userId) {
+        return false;
+      }
+      questions = const PracticeQuestionSelector().select(
+        categoryId: categoryId,
+        topics: const TopicPerformanceCalculator().calculate(
+          answers,
+          userId: userId,
+          categoryId: categoryId,
+        ),
+        questions: questions,
+        policy: ref.read(weakAreaPolicyProvider),
+      );
+    }
     if (!ref.mounted ||
         generation != _generation ||
         ref.read(authStateProvider).user?.id != userId) {
@@ -72,7 +109,7 @@ class AssessmentController extends Notifier<AssessmentSession?> {
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
     final assessment = Assessment(
-      id: 'attempt-$uniqueId',
+      id: '${isPractice ? 'practice' : 'attempt'}-$uniqueId',
       categoryId: categoryId,
       questions: questions,
       startedAt: startedAt,
@@ -143,6 +180,10 @@ class AssessmentController extends Notifier<AssessmentSession?> {
               answers: session.answers,
               completedAt: ref.read(assessmentClockProvider)(),
             );
+    if (isPractice) {
+      state = session.copyWith(result: result);
+      return Future.value(result);
+    }
     state = session.copyWith(result: result, isSaving: true);
     final generation = _generation;
     return _pendingSave = _save(

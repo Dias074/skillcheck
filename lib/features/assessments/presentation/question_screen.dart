@@ -8,32 +8,41 @@ import 'widgets/session_unavailable.dart';
 import 'widgets/assessment_save_status.dart';
 
 class QuestionScreen extends ConsumerWidget {
-  const QuestionScreen({super.key});
+  const QuestionScreen({super.key, this.practice = false});
+  final bool practice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(assessmentControllerProvider);
-    if (session == null) return const SessionUnavailable();
+    final provider = practice
+        ? practiceControllerProvider
+        : assessmentControllerProvider;
+    final route = practice ? '/progress/practice' : '/assessments';
+    final session = ref.watch(provider);
+    if (session == null) return SessionUnavailable(practice: practice);
     if (session.result != null) {
       return PageContent(
-        title: 'Assessment submitted',
+        title: practice ? 'Practice completed' : 'Assessment submitted',
         description: 'Your answers are locked.',
         children: [
-          const AssessmentSaveStatus(),
+          if (!practice) const AssessmentSaveStatus(),
           FilledButton(
-            onPressed: () => context.go('/assessments/result'),
+            onPressed: () => context.go('$route/result'),
             child: const Text('View result'),
           ),
         ],
       );
     }
-    final controller = ref.read(assessmentControllerProvider.notifier);
+    final controller = ref.read(provider.notifier);
     final question = session.currentQuestion;
     final selected = session.selections[question.id];
     return PageContent(
       key: ValueKey(question.id),
-      title: session.category.name,
-      description: 'No answers are revealed until submission.',
+      title: practice
+          ? '${session.category.name} practice'
+          : session.category.name,
+      description: practice
+          ? 'Practice only • Not saved to assessment history.'
+          : 'No answers are revealed until submission.',
       children: [
         Text(
           'Question ${session.questionIndex + 1} of ${session.assessment.questions.length}',
@@ -102,12 +111,13 @@ class QuestionScreen extends ConsumerWidget {
                 onPressed: () async {
                   final result = await controller.submit();
                   if (!context.mounted) return;
-                  final current = ref.read(assessmentControllerProvider);
-                  if (current?.result == result && current!.isSaved) {
-                    context.go('/assessments/result');
+                  final current = ref.read(provider);
+                  if (current?.result == result &&
+                      (practice || current!.isSaved)) {
+                    context.go('$route/result');
                   }
                 },
-                child: const Text('Submit assessment'),
+                child: Text(practice ? 'Finish practice' : 'Submit assessment'),
               ),
           ],
         ),

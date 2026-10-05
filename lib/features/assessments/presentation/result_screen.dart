@@ -8,18 +8,27 @@ import 'widgets/session_unavailable.dart';
 import 'widgets/assessment_save_status.dart';
 
 class ResultScreen extends ConsumerWidget {
-  const ResultScreen({super.key});
+  const ResultScreen({super.key, this.practice = false});
+  final bool practice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(assessmentControllerProvider);
+    final provider = practice
+        ? practiceControllerProvider
+        : assessmentControllerProvider;
+    final route = practice ? '/progress/practice' : '/assessments';
+    final session = ref.watch(provider);
     final result = session?.result;
-    if (session == null || result == null) return const SessionUnavailable();
+    if (session == null || result == null) {
+      return SessionUnavailable(practice: practice);
+    }
     return PageContent(
       title: '${session.category.name} result',
-      description: 'Your completed assessment',
+      description: practice
+          ? 'Practice result • Not saved. History and Weak Areas are unchanged.'
+          : 'Your completed assessment',
       children: [
-        const AssessmentSaveStatus(),
+        if (!practice) const AssessmentSaveStatus(),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -50,12 +59,15 @@ class ResultScreen extends ConsumerWidget {
           runSpacing: 12,
           children: [
             FilledButton(
-              onPressed: () => context.go('/assessments/review'),
+              onPressed: () => context.go('$route/review'),
               child: const Text('Review answers'),
             ),
             OutlinedButton(
-              onPressed: () => context.go('/assessments'),
-              child: const Text('Back to assessments'),
+              onPressed: () =>
+                  context.go(practice ? '/progress' : '/assessments'),
+              child: Text(
+                practice ? 'Back to Progress' : 'Back to assessments',
+              ),
             ),
             TextButton(
               onPressed: () => context.go('/progress'),

@@ -8,23 +8,30 @@ import 'widgets/answer_review_card.dart';
 import 'widgets/session_unavailable.dart';
 
 class AnswerReviewScreen extends ConsumerWidget {
-  const AnswerReviewScreen({super.key});
+  const AnswerReviewScreen({super.key, this.practice = false});
+  final bool practice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(assessmentControllerProvider);
+    final provider = practice
+        ? practiceControllerProvider
+        : assessmentControllerProvider;
+    final route = practice ? '/progress/practice' : '/assessments';
+    final session = ref.watch(provider);
     if (session == null || session.result == null) {
-      return const SessionUnavailable();
+      return SessionUnavailable(practice: practice);
     }
     final reviews = session.review;
     return PageContent(
       title: 'Answer review',
-      description: session.category.name,
+      description: practice
+          ? '${session.category.name} • Practice'
+          : session.category.name,
       children: [
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(
-            onPressed: () => context.go('/assessments/result'),
+            onPressed: () => context.go('$route/result'),
             child: const Text('Back to result'),
           ),
         ),

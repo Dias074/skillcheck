@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../assessments/application/assessment_controller.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_providers.dart';
@@ -11,11 +15,25 @@ class WeakAreasSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final topics = ref.watch(topicPerformanceProvider);
     final policy = ref.watch(weakAreaPolicyProvider);
+    final practice = ref.watch(practiceControllerProvider);
     final userId = ref.watch(authStateProvider.select((s) => s.user?.id));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Weak Areas', style: Theme.of(context).textTheme.titleLarge),
+        if (practice != null)
+          TextButton(
+            onPressed: () => context.go(
+              practice.result == null
+                  ? '/progress/practice/session'
+                  : '/progress/practice/result',
+            ),
+            child: Text(
+              practice.result == null
+                  ? 'Resume practice'
+                  : 'View practice result',
+            ),
+          ),
         Text(
           'Below ${policy.threshold.toStringAsFixed(0)}% after at least ${policy.minimumAnswers} answers across ${policy.minimumAttempts} attempts and ${policy.minimumQuestions} different questions. Skips are excluded from the percentage.',
         ),
@@ -48,6 +66,19 @@ class WeakAreasSection extends ConsumerWidget {
             (t) => policy.classify(t) == TopicStatus.weak,
           ))
             const Text('No weak topics among those with enough evidence.'),
+          for (final categoryId
+              in topics.requireValue
+                  .where((t) => policy.classify(t) == TopicStatus.weak)
+                  .map((t) => t.categoryId)
+                  .toSet())
+            FilledButton.tonal(
+              onPressed: () => context.go(
+                '/progress/practice/start/${Uri.encodeComponent(categoryId)}',
+              ),
+              child: Text(
+                'Practice weak topics • ${topics.requireValue.firstWhere((t) => t.categoryId == categoryId).categoryName}',
+              ),
+            ),
           for (final topic in topics.requireValue)
             _TopicCard(topic: topic, policy: policy),
         ],

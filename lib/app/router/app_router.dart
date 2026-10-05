@@ -11,6 +11,7 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/progress/presentation/progress_screen.dart';
 import '../../shared/widgets/feature_placeholder.dart';
 import 'main_navigation.dart';
+import '../../features/practice/presentation/practice_start_screen.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 
@@ -105,6 +106,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/progress',
                 builder: (context, state) => const ProgressScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'practice/session',
+                    builder: (context, state) =>
+                        const QuestionScreen(practice: true),
+                  ),
+                  GoRoute(
+                    path: 'practice/result',
+                    builder: (context, state) =>
+                        const ResultScreen(practice: true),
+                  ),
+                  GoRoute(
+                    path: 'practice/review',
+                    builder: (context, state) =>
+                        const AnswerReviewScreen(practice: true),
+                  ),
+                  GoRoute(
+                    path: 'practice/start/:categoryId',
+                    builder: (context, state) => PracticeStartScreen(
+                      key: ValueKey(state.pathParameters['categoryId']),
+                      categoryId: state.pathParameters['categoryId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
