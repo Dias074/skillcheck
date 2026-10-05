@@ -18,7 +18,8 @@ class _HistoryListState extends State<HistoryList> {
     children: [
       Text('Assessment history', style: Theme.of(context).textTheme.titleLarge),
       const Text('Newest first • dates shown in your local time'),
-      for (final attempt in widget.attempts.take(_visible))
+      for (final attempt in widget.attempts.take(_visible)) ...[
+        const SizedBox(height: 12),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -40,6 +41,7 @@ class _HistoryListState extends State<HistoryList> {
             ),
           ),
         ),
+      ],
       if (_visible < widget.attempts.length)
         TextButton(
           onPressed: () => setState(() => _visible += 20),

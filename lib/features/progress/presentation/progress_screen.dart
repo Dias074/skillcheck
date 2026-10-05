@@ -67,6 +67,11 @@ class _ProgressContent extends ConsumerWidget {
       if (available != null)
         for (final c in available) c.id: c.name,
     };
+    // A selected category can outlive a failed/refreshed catalogue request.
+    // Keep a valid dropdown item without silently changing the user's filter.
+    if (categoryId != null) {
+      names.putIfAbsent(categoryId, () => 'Unavailable category');
+    }
     final summary = ProgressSummary(history, categoryId: categoryId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,7 +87,14 @@ class _ProgressContent extends ConsumerWidget {
           items: [
             const DropdownMenuItem(value: '', child: Text('All categories')),
             for (final entry in names.entries)
-              DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+              DropdownMenuItem(
+                value: entry.key,
+                child: Text(
+                  entry.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
           ],
           onChanged: (id) => ref
               .read(progressCategoryProvider.notifier)

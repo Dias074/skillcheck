@@ -80,6 +80,7 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         DropdownButtonFormField<ThemeMode>(
           initialValue: ref.watch(themeModeProvider),
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Theme',
             border: OutlineInputBorder(),

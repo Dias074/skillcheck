@@ -17,6 +17,8 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
+  bool _showPassword = false;
+  bool _showConfirm = false;
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -45,7 +47,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (ref.read(authControllerProvider).isLoading ||
+        !_form.currentState!.validate()) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
     final controller = ref.read(authControllerProvider.notifier);
     switch (widget.mode) {
       case AuthFormMode.login:
@@ -85,6 +91,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     if (register) ...[
                       TextFormField(
                         controller: _name,
+                        autofillHints: const [AutofillHints.nickname],
+                        textCapitalization: TextCapitalization.words,
                         enabled: !operation.isLoading,
                         decoration: const InputDecoration(
                           labelText: 'Display name',
@@ -106,7 +114,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
                         autocorrect: false,
-                        textInputAction: TextInputAction.next,
+                        textInputAction: forgot
+                            ? TextInputAction.done
+                            : TextInputAction.next,
+                        onFieldSubmitted: forgot ? (_) => _submit() : null,
                         validator: (value) =>
                             value != null &&
                                 RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
@@ -120,9 +131,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       TextFormField(
                         controller: _password,
                         enabled: !operation.isLoading,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: !_showPassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: register || reset
+                            ? TextInputAction.next
+                            : TextInputAction.done,
+                        onFieldSubmitted: register || reset
+                            ? null
+                            : (_) => _submit(),
+                        decoration: InputDecoration(
                           labelText: 'Password',
+                          helperText: register || reset
+                              ? 'At least 8 characters'
+                              : null,
+                          suffixIcon: IconButton(
+                            tooltip: _showPassword
+                                ? 'Hide password'
+                                : 'Show password',
+                            onPressed: operation.isLoading
+                                ? null
+                                : () => setState(
+                                    () => _showPassword = !_showPassword,
+                                  ),
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                          ),
                         ),
                         autofillHints: [
                           register || reset
@@ -145,9 +182,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       TextFormField(
                         controller: _confirm,
                         enabled: !operation.isLoading,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: !_showConfirm,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        autofillHints: const [AutofillHints.newPassword],
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        decoration: InputDecoration(
                           labelText: 'Confirm password',
+                          suffixIcon: IconButton(
+                            tooltip: _showConfirm
+                                ? 'Hide confirmation password'
+                                : 'Show confirmation password',
+                            onPressed: operation.isLoading
+                                ? null
+                                : () => setState(
+                                    () => _showConfirm = !_showConfirm,
+                                  ),
+                            icon: Icon(
+                              _showConfirm
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                          ),
                         ),
                         validator: (value) => value == _password.text
                             ? null
@@ -162,7 +219,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),
-                    if (message != null) Text(message),
+                    if (message != null)
+                      Semantics(liveRegion: true, child: Text(message)),
                     const SizedBox(height: 20),
                     FilledButton(
                       onPressed: operation.isLoading ? null : _submit,

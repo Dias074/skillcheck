@@ -34,7 +34,7 @@ class AnswerReviewCard extends StatelessWidget {
                       : theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                Text(label, style: theme.textTheme.labelLarge),
+                Expanded(child: Text(label, style: theme.textTheme.labelLarge)),
               ],
             ),
             const SizedBox(height: 12),

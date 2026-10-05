@@ -219,7 +219,7 @@ remain reserved for a physical phone.
 - [x] Phase 5: Persisted assessment history, Progress dashboard, filtering and chart; manual Chrome verification complete
 - [x] Phase 6: Topic performance and Weak Areas; manual Chrome verification complete
 - [x] Phase 7: Weak Topic Practice; manual Android and Chrome verification complete ([details](docs/phase-7-practice.md))
-- [ ] Phase 8: UI polish and accessibility
+- [x] Phase 8: UI polish and accessibility; manual Android and Chrome verification complete ([audit and checklist](docs/phase-8-polish.md))
 - [ ] Phase 9: Portfolio preparation
 - [ ] Future: AI recommendations
 

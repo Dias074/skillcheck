@@ -79,8 +79,10 @@ class WeakAreasSection extends ConsumerWidget {
                 'Practice weak topics • ${topics.requireValue.firstWhere((t) => t.categoryId == categoryId).categoryName}',
               ),
             ),
-          for (final topic in topics.requireValue)
+          for (final topic in topics.requireValue) ...[
+            const SizedBox(height: 12),
             _TopicCard(topic: topic, policy: policy),
+          ],
         ],
       ],
     );

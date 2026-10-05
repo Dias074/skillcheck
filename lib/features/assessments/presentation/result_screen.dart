@@ -23,7 +23,9 @@ class ResultScreen extends ConsumerWidget {
       return SessionUnavailable(practice: practice);
     }
     return PageContent(
-      title: '${session.category.name} result',
+      title: practice
+          ? '${session.category.name} practice result'
+          : '${session.category.name} result',
       description: practice
           ? 'Practice result • Not saved. History and Weak Areas are unchanged.'
           : 'Your completed assessment',
@@ -69,10 +71,11 @@ class ResultScreen extends ConsumerWidget {
                 practice ? 'Back to Progress' : 'Back to assessments',
               ),
             ),
-            TextButton(
-              onPressed: () => context.go('/progress'),
-              child: const Text('View progress'),
-            ),
+            if (!practice)
+              TextButton(
+                onPressed: () => context.go('/progress'),
+                child: const Text('View progress'),
+              ),
             TextButton(
               onPressed: () => context.go('/home'),
               child: const Text('Back to Home'),

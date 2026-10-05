@@ -57,7 +57,7 @@ class ProgressChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 48,
+                      reservedSize: MediaQuery.textScalerOf(context).scale(48),
                       interval: 25,
                       getTitlesWidget: (value, meta) => Text(
                         '${value.toInt()}%',
@@ -83,13 +83,17 @@ class ProgressChart extends StatelessWidget {
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) =>
+                        Theme.of(context).colorScheme.inverseSurface,
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
                     getTooltipItems: (spots) => spots.map((spot) {
                       final attempt = attempts[spot.spotIndex];
                       return LineTooltipItem(
                         '${attempt.categoryName}\n${historyDate(context, attempt.result.completedAt)}\n${spot.y.toStringAsFixed(1)}%',
-                        const TextStyle(color: Colors.white),
+                        TextStyle(
+                          color: Theme.of(context).colorScheme.onInverseSurface,
+                        ),
                       );
                     }).toList(),
                   ),
